@@ -133,6 +133,54 @@ def main(api_url, api_key, args: argparse.Namespace):
     else:
         submissions = assignment.get_submissions(include=['submission_comments'])
 
+    #-------------------------------------------------------------------------------- 
+
+    # List of target assignment group numbers
+    target_assignment_groups = [5, 9, 21, 23, 25, 26, 35, 44, 48, 50, 66, 71, 87, 91]
+    
+    # Fetch the student groups for the assignment
+    if assignment.group_category_id:
+        groups = course.get_groups()
+        assignment_groups = [group for group in groups if group.group_category_id == assignment.group_category_id]
+    
+        # Debugging: Print the student group details
+        print("\nStudent Groups for the Assignment:")
+        for group in assignment_groups:
+            print(f"Group ID: {group.id}, Group Name: {group.name}")
+    
+        # Convert target group numbers to names for filtering
+        target_group_names = [f'Assignment Group {num}' for num in target_assignment_groups]
+    
+        # Create a mapping of student IDs to their groups
+        student_group_map = {}
+    
+        # Assuming you have a way to get all students for the course
+        all_students = course.get_users(enrollment_type=['student'])
+
+        # Populate the mapping by checking group membership for each group
+        for group in assignment_groups:
+            if group.name in target_group_names:
+                # Check group members for the current group
+                group_members = group.get_users(enrollment_type=['student'])  # This method might vary based on your API
+                
+                for student in group_members:
+                    student_group_map[student.id] = group.name  # Map student ID to group name
+
+    
+        # Now filter the submissions by student ID
+        filtered_submissions = []
+        for submission in submissions:
+            if submission.user_id in student_group_map:
+                filtered_submissions.append(submission)
+
+        submissions = filtered_submissions
+    
+    else:
+        print("This assignment is not a group assignment.")
+        exit(1)
+
+    #-------------------------------------------------------------------------------- 
+
     for submission in submissions:
         user = course.get_user(submission.user_id)
         # add to participant list
